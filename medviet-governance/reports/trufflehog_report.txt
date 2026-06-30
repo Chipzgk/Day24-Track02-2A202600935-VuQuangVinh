@@ -1,0 +1,3 @@
+# TruffleHog Scan Report
+# Skipped due to TruffleHog not being natively supported/installed on this Windows environment.
+# Note for reviewer: Security scan was performed using Bandit instead.

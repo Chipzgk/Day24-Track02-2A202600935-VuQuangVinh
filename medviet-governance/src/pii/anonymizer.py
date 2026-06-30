@@ -35,18 +35,26 @@ class MedVietAnonymizer:
                 "PERSON": OperatorConfig("replace", 
                           {"new_value": fake.name()}),
                 "EMAIL_ADDRESS": OperatorConfig("replace", 
-                                 {"new_value": ___}),   # TODO: fake email
+                                 {"new_value": fake.email()}),
                 "VN_CCCD": OperatorConfig("replace", 
-                           {"new_value": ___}),          # TODO: fake CCCD
+                           {"new_value": fake.numerify("############")}),
                 "VN_PHONE": OperatorConfig("replace", 
-                            {"new_value": ___}),         # TODO: fake phone
+                            {"new_value": fake.numerify("09########")}),
             }
         elif strategy == "mask":
-            # TODO: implement masking
-            pass
+            operators = {
+                "PERSON": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 4, "from_end": True}),
+                "EMAIL_ADDRESS": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 5, "from_end": True}),
+                "VN_CCCD": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 6, "from_end": True}),
+                "VN_PHONE": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 4, "from_end": True})
+            }
         elif strategy == "hash":
-            # TODO: implement hashing dùng sha256
-            pass
+            operators = {
+                "PERSON": OperatorConfig("hash", {"hash_type": "sha256"}),
+                "EMAIL_ADDRESS": OperatorConfig("hash", {"hash_type": "sha256"}),
+                "VN_CCCD": OperatorConfig("hash", {"hash_type": "sha256"}),
+                "VN_PHONE": OperatorConfig("hash", {"hash_type": "sha256"})
+            }
 
         anonymized = self.anonymizer.anonymize(
             text=text,
@@ -65,8 +73,12 @@ class MedVietAnonymizer:
         """
         df_anon = df.copy()
 
-        # TODO: Xử lý từng cột PII
-        # Gợi ý: dùng df.apply() hoặc list comprehension
+        # Xử lý từng cột PII
+        for col in ["ho_ten", "dia_chi", "email"]:
+            df_anon[col] = df_anon[col].apply(lambda x: self.anonymize_text(str(x), strategy="replace"))
+        
+        df_anon["cccd"] = df_anon["cccd"].apply(lambda x: fake.numerify("############"))
+        df_anon["so_dien_thoai"] = df_anon["so_dien_thoai"].apply(lambda x: fake.numerify("09########"))
 
         return df_anon
 

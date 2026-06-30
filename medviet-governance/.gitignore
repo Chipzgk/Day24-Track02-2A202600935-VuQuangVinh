@@ -1,0 +1,5 @@
+.vault_key
+data/raw/
+*.zip
+__pycache__/
+test_secret.py

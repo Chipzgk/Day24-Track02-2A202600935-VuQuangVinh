@@ -7,48 +7,36 @@ def build_patient_expectation_suite() -> ExpectationSuite:
     """
     TODO: Tạo expectation suite cho anonymized patient data.
     """
+    import great_expectations.expectations as gxe
+    
     context = gx.get_context()
-    suite = context.add_expectation_suite("patient_data_suite")
-
-    # Lấy validator
-    df = pd.read_csv("data/raw/patients_raw.csv")
-    validator = context.sources.pandas_default.read_dataframe(df)
-
-    # --- TASK: Thêm các expectations ---
+    suite = gx.ExpectationSuite(name="patient_data_suite")
 
     # 1. patient_id không được null
-    validator.expect_column_values_to_not_be_null("patient_id")
+    suite.add_expectation(gxe.ExpectColumnValuesToNotBeNull(column="patient_id"))
 
-    # 2. TODO: cccd phải có đúng 12 ký tự
-    validator.expect_column_value_lengths_to_equal(
-        column=___,
-        value=___
-    )
+    # 2. cccd phải có đúng 12 ký tự
+    suite.add_expectation(gxe.ExpectColumnValueLengthsToEqual(column="cccd", value=12))
 
-    # 3. TODO: ket_qua_xet_nghiem phải trong khoảng [0, 50]
-    validator.expect_column_values_to_be_between(
-        column=___,
-        min_value=___,
-        max_value=___
-    )
+    # 3. ket_qua_xet_nghiem phải trong khoảng [0, 50]
+    suite.add_expectation(gxe.ExpectColumnValuesToBeBetween(column="ket_qua_xet_nghiem", min_value=0, max_value=50))
 
-    # 4. TODO: benh phải thuộc danh sách hợp lệ
+    # 4. benh phải thuộc danh sách hợp lệ
     valid_conditions = ["Tiểu đường", "Huyết áp cao", "Tim mạch", "Khỏe mạnh"]
-    validator.expect_column_values_to_be_in_set(
-        column=___,
-        value_set=___
-    )
+    suite.add_expectation(gxe.ExpectColumnValuesToBeInSet(column="benh", value_set=valid_conditions))
 
-    # 5. TODO: email phải match regex pattern
-    validator.expect_column_values_to_match_regex(
-        column="email",
-        regex=r"___"    # TODO: email regex
-    )
+    # 5. email phải match regex pattern
+    suite.add_expectation(gxe.ExpectColumnValuesToMatchRegex(column="email", regex=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"))
 
-    # 6. TODO: Không được có duplicate patient_id
-    validator.expect_column_values_to_be_unique(column=___)
+    # 6. Không được có duplicate patient_id
+    suite.add_expectation(gxe.ExpectColumnValuesToBeUnique(column="patient_id"))
 
-    validator.save_expectation_suite()
+    try:
+        suite = context.suites.add(suite)
+    except Exception:
+        # Nếu đã tồn tại thì lấy lại
+        suite = context.suites.get("patient_data_suite")
+        
     return suite
 
 
@@ -68,13 +56,20 @@ def validate_anonymized_data(filepath: str) -> dict:
     }
 
     # Check 1: Không còn CCCD gốc dạng số thuần túy
-    # (sau anonymization, cccd phải là fake hoặc masked)
-    # TODO: implement check
+    df_raw = pd.read_csv("data/raw/patients_raw.csv")
+    if (df["cccd"] == df_raw["cccd"]).any():
+        results["success"] = False
+        results["failed_checks"].append("cccd_not_anonymized")
 
     # Check 2: Không có null values trong các cột quan trọng
-    # TODO: implement check
+    important_cols = ["patient_id", "benh", "ket_qua_xet_nghiem"]
+    if df[important_cols].isnull().any().any():
+        results["success"] = False
+        results["failed_checks"].append("null_values_in_important_columns")
 
     # Check 3: Số rows phải bằng original
-    # TODO: implement check
+    if len(df) != len(df_raw):
+        results["success"] = False
+        results["failed_checks"].append("row_count_mismatch")
 
     return results
